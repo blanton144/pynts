@@ -1,0 +1,142 @@
+#!/usr/bin/env python
+if __name__ == '__build__':
+    raise Exception
+
+from numpy import *
+from pyntsMain import *
+from pointsList import *
+from polygonsList import *
+import struct, sys
+
+#
+# points
+#
+# Python code which reproduces (for the most part) the behavior 
+# of the "points" C-code of many years ago. 
+#
+# Written by MRB 2002-12-12
+#
+
+def getInput(input,key,default,indx):
+    val=default
+    if(input.has_key(key) and len(input[key]) > i):
+        val=(input[key])[i]
+    return val    
+
+def inputPoints(pointfile, numpoints, intype, subsample,
+                lower, upper):
+    ifp=open(pointfile,'rb')
+    binpositions=ifp.read()
+    floatsize=struct.calcsize('f')
+    if(numpoints == 0):
+        numpoints=len(binpositions)/3/floatsize
+    positions=array(struct.unpack(str(3*numpoints)+'f',
+                                  binpositions[0:floatsize*3*numpoints]))
+    positions.shape=(numpoints,3,)
+    indx=cumsum(concatenate(([0],repeat([1],numpoints-1))))
+    compress(greater(positions[:,0],10.), indx)
+    print indx
+    positions=positions[indx,:]
+    ifp.close()
+    return positions
+
+def inputPolygons(pointfile, numpoly, intype, subsample,
+                  lower, upper):
+    ifp=open(pointfile,'rb')
+    binpolygons=ifp.read()
+    intsize=struct.calcsize('i')
+    if(numpoly == 0):
+        numpoly=len(binpolygons)/intsize
+    positions=array(struct.unpack(str(numpoly)+'f',
+                                  binpolygons[0:intsize*numpoly]))
+    positions.shape=(numpoly,)
+    ifp.close()
+    return polygons
+
+# read in the input file
+if(len(sys.argv) < 2):
+    print "Usage: points <input file>"
+    sys.exit()
+infp=open(sys.argv[1],"r")
+input={}
+for line in infp:
+    words=line.split()
+    input[words[0]]=words[1:]
+infp.close()
+
+# interpret .in file, if any
+i=0
+subsample=1
+pointsize=1
+intype=0
+pointcolor=[1.,0.,0.,1.]
+lowerstr=['-1.e+30','-1.e+30','-1.e+30']
+upperstr=['1.e+30','1.e+30','1.e+30']
+if(1):
+    for pointfile in input['pointfile']:
+        velocityfile=getInput(input,"velocityfile","NULL",i)
+        velocityscale=getInput(input,"velocityscale",1.,i)
+        orignumpoints=getInput(input,"numpoints",0,i)
+        subsample=getInput(input,"subsample",subsample,i)
+        colorfile=getInput(input,"colorfile","NULL",i)
+        pickfile=getInput(input,"pickfile","NULL",i)
+        intype=getInput(input,"intype",intype,i)
+        pointsize=getInput(input,"pointsize",pointsize,i)
+        pointcolor[0]=getInput(input,"pointcolor",pointcolor[0],4*i+0)
+        pointcolor[1]=getInput(input,"pointcolor",pointcolor[1],4*i+1)
+        pointcolor[2]=getInput(input,"pointcolor",pointcolor[2],4*i+2)
+        pointcolor[3]=getInput(input,"pointcolor",pointcolor[3],4*i+3)
+        lowerstr[0]=getInput(input,"pointlower",lowerstr[0],3.*i+0)
+        lowerstr[1]=getInput(input,"pointlower",lowerstr[1],3.*i+1)
+        lowerstr[2]=getInput(input,"pointlower",lowerstr[2],3.*i+2)
+        lower=(array(lowerstr)).astype('Float32')
+        upperstr[0]=getInput(input,"pointupper",upperstr[0],3.*i+0)
+        upperstr[1]=getInput(input,"pointupper",upperstr[1],3.*i+1)
+        upperstr[2]=getInput(input,"pointupper",upperstr[2],3.*i+2)
+        upper=(array(upperstr)).astype('Float32') 
+        positions=inputPoints(pointfile,orignumpoints,intype,subsample,lower,
+                              upper)
+        i=i+1
+
+if(0):
+    for vertexfile in input['vertexfile']:
+        subsample=getInput(input,"subsample",subsample,i)
+        intype=getInput(input,"intype",intype,i)
+        lowerstr[0]=getInput(input,"pointlower",lowerstr[0],3.*i+0)
+        lowerstr[1]=getInput(input,"pointlower",lowerstr[1],3.*i+1)
+        lowerstr[2]=getInput(input,"pointlower",lowerstr[2],3.*i+2)
+        lower=(array(lowerstr)).astype('Float32')
+        upperstr[0]=getInput(input,"pointupper",upperstr[0],3.*i+0)
+        upperstr[1]=getInput(input,"pointupper",upperstr[1],3.*i+1)
+        upperstr[2]=getInput(input,"pointupper",upperstr[2],3.*i+2)
+        upper=(array(upperstr)).astype('Float32') 
+        positions=inputPoints(vertexfile,0,intype,subsample,lower,
+                              upper)
+    for polyfile in input['polyfile']:
+        subsample=getInput(input,"subsample",subsample,i)
+        intype=getInput(input,"intype",intype,i)
+        lowerstr[0]=getInput(input,"pointlower",lowerstr[0],3.*i+0)
+        lowerstr[1]=getInput(input,"pointlower",lowerstr[1],3.*i+1)
+        lowerstr[2]=getInput(input,"pointlower",lowerstr[2],3.*i+2)
+        lower=(array(lowerstr)).astype('Float32')
+        upperstr[0]=getInput(input,"pointupper",upperstr[0],3.*i+0)
+        upperstr[1]=getInput(input,"pointupper",upperstr[1],3.*i+1)
+        upperstr[2]=getInput(input,"pointupper",upperstr[2],3.*i+2)
+        upper=(array(upperstr)).astype('Float32') 
+        polygons=inputPoints(polyfile,0,intype,subsample,lower,
+                             upper)
+        
+def createPoints():
+    pointsListNum=pointsList(positions)
+    return pointsListNum
+
+def createPolygons():
+    polygonsListNum=polygonsList(positions,polygons)
+    return polygonsListNum
+
+def createLines():
+    linesListNum=linesList(positions,lines)
+    return linesListNum
+
+# navigate the list(s)
+navigateList(createPoints,sys.argv[1:])

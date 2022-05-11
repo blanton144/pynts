@@ -1,0 +1,30 @@
+#!/usr/bin/env python
+
+if __name__ == '__build__':
+    raise Exception
+
+import sys
+import numpy as np
+import pynts.pyntsMain as pm
+import pynts.pointsList as pointsList
+import OpenGL.GL as GL
+
+
+ranpos1 = np.random.random((200000, 3)) - 0.5
+ranpos2 = np.random.random((200000, 3)) - 0.5
+
+
+def createPoints():
+    pointsListNum1 = pointsList.pointsList(ranpos1)
+    pointsListNum2 = pointsList.pointsList(ranpos2)
+    theList = GL.glGenLists(1)
+    GL.glNewList(theList, GL.GL_COMPILE)
+    GL.glColor4f(1, 0, 0, 1)
+    GL.glCallList(pointsListNum2)
+    GL.glColor4f(1, 1, 1, 1)
+    GL.glCallList(pointsListNum1)
+    GL.glEndList(theList, GL.GL_COMPILE)
+    return theList
+
+
+pm.navigateList(createPoints, sys.argv[1:])
